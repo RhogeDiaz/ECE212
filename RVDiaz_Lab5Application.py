@@ -1,32 +1,53 @@
 import numpy as np
 
-matrix1 = []
-print("Enter the entries rowwise: ")
+def input_matrix(rows, cols):
+    matrix = []
+    print(f"Enter the entries rowwise for a {rows}x{cols} matrix: ")
 
-for i in range(3):
-    a = []
-    for j in range(3):
-        a.append(int(input()))
-    matrix1.append(a)
+    for i in range(rows):
+        row = []
+        for j in range(cols):
+            row.append(float(input()))
+        matrix.append(row)
 
-for i in range(3):
-    for j in range(3):
-        print(matrix1[i][j], end=" ")
-    print()
+    return np.matrix(matrix)
 
-m1 = np.matrix(matrix1)
-print(m1)
+def print_matrix(matrix):
+    for i in range(matrix.shape[0]):
+        for j in range(matrix.shape[1]):
+            print(matrix[i, j], end=" ")
+        print()
 
-matrix2 = np.array([[6, -1, 0], [0, 1, -2], [3, -8, 1]])
-m2 = np.matrix(matrix2)
-print(m2)
+rows1 = int(input("Enter the number of rows for matrix 1: "))
+cols1 = int(input("Enter the number of columns for matrix 1: "))
 
-d = np.linalg.det(m1)
-det = int(d)
-print(det)
+m1 = input_matrix(rows1, cols1)
+print("Matrix 1:")
+print_matrix(m1)
 
-m3 = m1+m2
-print(m3)
+rows2 = int(input("Enter the number of rows for matrix 2: "))
+cols2 = int(input("Enter the number of columns for matrix 2: "))
 
-m4 = m1*m2
-print(m4)
+m2 = input_matrix(rows2, cols2)
+print("Matrix 2:")
+print_matrix(m2)
+
+
+if rows1 == rows2:
+    if cols1 == cols2:
+        sum = m1 + m2
+        print("Matrix 1 + Matrix 2:")
+        print_matrix(sum)
+else:
+    print("Matrix dimensions are not compatible for addition.")
+
+if cols1 == rows2:
+    det = np.linalg.det(m1)
+    print(f"Determinant of Matrix 1: {det}")
+
+    product = m1 * m2
+    print("Matrix 1 * Matrix 2:")
+    print_matrix(product)
+else:
+    print("Matrix dimensions are not compatible for multiplication.")
+
