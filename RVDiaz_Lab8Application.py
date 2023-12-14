@@ -1,3 +1,7 @@
+import numpy as np
+import matplotlib as plt
+import numpy.polynomial as poly
+
 xstart = -2
 xstop = 2.1
 increment = 0.1
