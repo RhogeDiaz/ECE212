@@ -12,6 +12,7 @@ s = 0
 p = 0
 shift = []
 for i in t:
+    print(i)
     if i == b[0]:
         b.pop(0)
         s = int(input())
