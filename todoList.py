@@ -1,5 +1,6 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
 from datetime import datetime
+import mysql.connector
 
 
 class TaskListModel(QtCore.QAbstractListModel):
@@ -11,21 +12,10 @@ class TaskListModel(QtCore.QAbstractListModel):
         if role == QtCore.Qt.DisplayRole:
             task, date = self.tasks[index.row()]
             return f"{task} - {date}"
-        if role == QtCore.Qt.EditRole:
-            return self.tasks[index.row()][0]
-
-    def setData(self, index, value, role):
-        if role == QtCore.Qt.EditRole:
-            self.tasks[index.row()] = (value, self.tasks[index.row()][1])
-            self.dataChanged.emit(index, index)
-            return True
-        return False
+        return None
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.tasks)
-
-    def flags(self, index):
-        return QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsEnabled
 
     def append(self, task):
         self.beginInsertRows(QtCore.QModelIndex(), len(self.tasks), len(self.tasks))
@@ -58,6 +48,14 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(800, 600)
+
+        # Connect to the MySQL database
+        self.db_connection = mysql.connector.connect(
+            host="localhost", 
+            user="root",  
+            password="",  
+            database="todo_list" 
+        )
 
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
@@ -149,19 +147,17 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        # Connect addTask button clicked signal to a function
+
         self.addTask.clicked.connect(self.add_task_to_list)
-
-        # Connect deleteTask button clicked signal to a function
         self.deleteTask.clicked.connect(self.delete_selected_task)
-
-        # Connect Return/Enter key press signal of task QLineEdit to add_task_to_list function
         self.task.returnPressed.connect(self.add_task_to_list)
 
-        # Initialize a custom model for the tasks QListView
         self.task_model = TaskListModel()
         self.tasks.setModel(self.task_model)
         self.tasks.setItemDelegate(TaskDelegate())
+
+        # Fetch tasks from database
+        self.fetch_tasks_from_db()
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
@@ -175,25 +171,50 @@ class Ui_MainWindow(object):
         self.actionClose_App.setText(_translate("MainWindow", "Close App"))
 
     def add_task_to_list(self):
-        # Get the text from the task QLineEdit
+        # Get text from task 
         task_text = self.task.text()
         if task_text:
-            # Get the current date and time
+            # Get date and time
             current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            # Append the task and its date to the model
+
+            # Inserttask 
+            cursor = self.db_connection.cursor()
+            query = "INSERT INTO tasks (task_text, created_at) VALUES (%s, %s)"
+            cursor.execute(query, (task_text, current_date))
+            self.db_connection.commit()
+            cursor.close()
+
+            # Append the task and date 
             self.task_model.append((task_text, current_date))
-            # Clear the task QLineEdit
             self.task.clear()
 
     def delete_selected_task(self):
-        # Get the selected indexes from the QListView
         indexes = self.tasks.selectedIndexes()
         if indexes:
-            # Get the row numbers of the selected items
             rows = [index.row() for index in indexes]
-            # Remove the selected tasks from the model
+
+            cursor = self.db_connection.cursor()
             for row in sorted(rows, reverse=True):
+                task_text, _ = self.task_model.tasks[row]
+                query = "DELETE FROM tasks WHERE task_text = %s"
+                cursor.execute(query, (task_text,))
                 self.task_model.remove(row)
+            self.db_connection.commit()
+            cursor.close()
+
+    def fetch_tasks_from_db(self):
+        # Fetch all tasks from database
+        cursor = self.db_connection.cursor()
+        query = "SELECT task_text, created_at FROM tasks"
+        cursor.execute(query)
+        tasks = cursor.fetchall()
+
+        for task in tasks:
+            task_text, created_at = task
+            self.task_model.append((task_text, created_at))
+
+        cursor.close()
+
 
 if __name__ == "__main__":
     import sys
